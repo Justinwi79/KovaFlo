@@ -4,6 +4,7 @@ import "./index.css";
 import KovaFloHomepage from "./pages/KovaFloHomepage.jsx";
 import AdminWaitlist from "./pages/AdminWaitlist.jsx";
 
+
 // Treat /admin, /admin/, /admin?x=1, /admin/anything as admin route
 function isAdminRoute(pathname = window.location.pathname) {
   return /^\/admin(\/|$)/.test(pathname);
