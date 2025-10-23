@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-// Local UI components
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 
-// --- Firebase (client) ---
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { db, auth } from "../lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { signInWithEmailAndPassword } from "firebase/auth";
+
+
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -16,9 +16,6 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
 
 function Logo() {
   return (
