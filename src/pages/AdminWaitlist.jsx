@@ -1,21 +1,14 @@
 // src/pages/AdminWaitlist.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
-  collection,
-  getDocs,
-  query,
-  orderBy,
-  doc,
-  getDoc,
+  collection, getDocs, query, orderBy, doc, getDoc
 } from "firebase/firestore";
 import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut,
+  onAuthStateChanged, signInWithEmailAndPassword, signOut
 } from "firebase/auth";
 import { db, auth } from "../lib/firebase";
 
-/** ---------- CSV helpers ---------- */
+/* ---------- CSV helpers ---------- */
 function csvEscape(v = "") {
   const s = String(v ?? "");
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -39,7 +32,7 @@ function downloadCSV(rows) {
   URL.revokeObjectURL(url);
 }
 
-/** ---------- Auth gate (email/password) that verifies Firestore role=admin ---------- */
+/* ---------- Auth gate ---------- */
 function AuthGate({ onAuthed }) {
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -52,7 +45,6 @@ function AuthGate({ onAuthed }) {
       try {
         const snap = await getDoc(doc(db, "users", u.uid));
         const role = snap.exists() ? snap.data().role : null;
-
         if (role === "admin") {
           if (!/^\/admin(\/|$)/.test(window.location.pathname)) {
             window.location.replace("/admin");
@@ -72,11 +64,14 @@ function AuthGate({ onAuthed }) {
 
   const login = async (e) => {
     e.preventDefault();
-    setBusy(true);
-    setErr("");
+    setBusy(true); setErr("");
     try {
-      await signInWithEmailAndPassword(auth, email, pw);
-      // onAuthStateChanged will handle role check & URL pin
+      const emailClean = email.trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailClean)) {
+        throw new Error("Please enter a valid email address.");
+      }
+      await signInWithEmailAndPassword(auth, emailClean, pw);
+      // onAuthStateChanged handles the rest
     } catch (e) {
       console.error(e);
       setErr(e.message || "Login failed");
@@ -117,8 +112,9 @@ function AuthGate({ onAuthed }) {
   );
 }
 
-/** ---------- Main Admin screen (requires role=admin) ---------- */
+/* ---------- Main Admin screen ---------- */
 export default function AdminWaitlist() {
+  // ✅ Hooks ALWAYS first, and called on every render
   const [user, setUser] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -126,7 +122,7 @@ export default function AdminWaitlist() {
 
   // Load waitlist after successful admin auth
   useEffect(() => {
-    if (!user) return;
+    if (!user) return; // effect won't run until user exists — safe
     (async () => {
       try {
         setLoading(true);
@@ -135,12 +131,7 @@ export default function AdminWaitlist() {
         const items = snap.docs.map((d) => {
           const data = d.data();
           const ts = data.createdAt?.toMillis ? data.createdAt.toMillis() : null;
-          return {
-            id: d.id,
-            email: data.email || "",
-            company: data.company || "",
-            createdAt: ts,
-          };
+          return { id: d.id, email: data.email || "", company: data.company || "", createdAt: ts };
         });
         setRows(items);
       } catch (e) {
@@ -152,96 +143,95 @@ export default function AdminWaitlist() {
     })();
   }, [user]);
 
-  if (!user) return <AuthGate onAuthed={setUser} />;
-
+  // ✅ Hooks called every render (even if user is null)
   const total = rows.length;
   const latest = useMemo(
     () => (rows[0]?.createdAt ? new Date(rows[0].createdAt).toLocaleString() : "—"),
     [rows]
   );
 
-  return (
-    <div className="min-h-screen bg-[#F9FBFD] text-gray-900">
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-[#D0E8F0]">
-        <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <a href="/" className="flex items-center gap-2 select-none">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#004581] to-[#019ABD]" />
-            <span className="text-xl font-extrabold tracking-tight text-[#004581]">
-              Kova<span className="text-[#019ABD]">Flo</span> Admin
-            </span>
-          </a>
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-[#004581]">
-              {total} entries • Latest: {latest}
-            </div>
-            <button
-              onClick={() => signOut(auth)}
-              className="text-sm text-[#004581] underline"
-              title="Sign out"
-            >
-              Sign out
-            </button>
-          </div>
-        </nav>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-6 py-8">
-        <div className="rounded-2xl border border-[#D0E8F0] bg-white shadow p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-            <h1 className="text-2xl font-bold text-[#004581]">Waitlist</h1>
-            <div className="flex gap-3">
-              <button
-                onClick={() => downloadCSV(rows)}
-                className="inline-flex items-center justify-center h-10 px-4 rounded-2xl bg-[#004581] text-white font-semibold hover:bg-[#019ABD]"
-                disabled={!rows.length}
-              >
-                Export CSV
+  // Choose the view without early-returning before hooks
+  let view;
+  if (!user) {
+    view = <AuthGate onAuthed={setUser} />;
+  } else {
+    view = (
+      <>
+        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-[#D0E8F0]">
+          <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+            <a href="/" className="flex items-center gap-2 select-none">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#004581] to-[#019ABD]" />
+              <span className="text-xl font-extrabold tracking-tight text-[#004581]">
+                Kova<span className="text-[#019ABD]">Flo</span> Admin
+              </span>
+            </a>
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-[#004581]">{total} entries • Latest: {latest}</div>
+              <button onClick={() => signOut(auth)} className="text-sm text-[#004581] underline" title="Sign out">
+                Sign out
               </button>
-              <a
-                href="/"
-                className="inline-flex items-center justify-center h-10 px-4 rounded-2xl border border-[#D0E8F0] text-[#004581] font-semibold hover:bg-[#F1F7FA]"
-              >
-                Back to Site
-              </a>
             </div>
-          </div>
+          </nav>
+        </header>
 
-          {loading ? (
-            <p className="text-gray-600">Loading…</p>
-          ) : error ? (
-            <p className="text-red-700">{error}</p>
-          ) : rows.length === 0 ? (
-            <p className="text-gray-600">No signups yet.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="text-left border-b border-[#E6F0F4] text-[#004581]">
-                    <th className="py-2 pr-4">Email</th>
-                    <th className="py-2 pr-4">Company</th>
-                    <th className="py-2">Created</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.id} className="border-b border-[#F0F6F9]">
-                      <td className="py-2 pr-4">{r.email}</td>
-                      <td className="py-2 pr-4">{r.company || "—"}</td>
-                      <td className="py-2">
-                        {r.createdAt ? new Date(r.createdAt).toLocaleString() : "—"}
-                      </td>
+        <main className="mx-auto max-w-6xl px-6 py-8">
+          <div className="rounded-2xl border border-[#D0E8F0] bg-white shadow p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+              <h1 className="text-2xl font-bold text-[#004581]">Waitlist</h1>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => downloadCSV(rows)}
+                  className="inline-flex items-center justify-center h-10 px-4 rounded-2xl bg-[#004581] text-white font-semibold hover:bg-[#019ABD]"
+                  disabled={!rows.length}
+                >
+                  Export CSV
+                </button>
+                <a
+                  href="/"
+                  className="inline-flex items-center justify-center h-10 px-4 rounded-2xl border border-[#D0E8F0] text-[#004581] font-semibold hover:bg-[#F1F7FA]"
+                >
+                  Back to Site
+                </a>
+              </div>
+            </div>
+
+            {loading ? (
+              <p className="text-gray-600">Loading…</p>
+            ) : error ? (
+              <p className="text-red-700">{error}</p>
+            ) : rows.length === 0 ? (
+              <p className="text-gray-600">No signups yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="text-left border-b border-[#E6F0F4] text-[#004581]">
+                      <th className="py-2 pr-4">Email</th>
+                      <th className="py-2 pr-4">Company</th>
+                      <th className="py-2">Created</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </main>
+                  </thead>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr key={r.id} className="border-b border-[#F0F6F9]">
+                        <td className="py-2 pr-4">{r.email}</td>
+                        <td className="py-2 pr-4">{r.company || "—"}</td>
+                        <td className="py-2">{r.createdAt ? new Date(r.createdAt).toLocaleString() : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </main>
 
-      <footer className="bg-[#004581] text-white text-center py-6 text-sm mt-16">
-        © {new Date().getFullYear()} KovaFlo
-      </footer>
-    </div>
-  );
+        <footer className="bg-[#004581] text-white text-center py-6 text-sm mt-16">
+          © {new Date().getFullYear()} KovaFlo
+        </footer>
+      </>
+    );
+  }
+
+  return <div className="min-h-screen bg-[#F9FBFD] text-gray-900">{view}</div>;
 }
