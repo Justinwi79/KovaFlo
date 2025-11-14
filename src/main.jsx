@@ -1,14 +1,14 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./index.css";
+
 import KovaFloHomepage from "./pages/KovaFloHomepage.jsx";
 import AdminWaitlist from "./pages/AdminWaitlist.jsx";
+import ManagementDashboard from "./pages/ManagementDashboard.jsx";
+import InspectorDashboard from "./pages/InspectorDashboard.jsx";
 
-// Treat /admin, /admin/, /admin?x=1, /admin/anything as admin route
-function isAdminRoute(pathname = window.location.pathname) {
-  return /^\/admin(\/|$)/.test(pathname);
-}
-
+// Minimal error boundary so we see errors instead of a blank screen
 class ErrorBoundary extends React.Component {
   constructor(p){ super(p); this.state = { hasError:false, err:null }; }
   static getDerivedStateFromError(err){ return { hasError:true, err }; }
@@ -26,10 +26,19 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-const App = isAdminRoute() ? <AdminWaitlist /> : <KovaFloHomepage />;
-
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <ErrorBoundary>{App}</ErrorBoundary>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<KovaFloHomepage />} />
+          <Route path="/admin/*" element={<AdminWaitlist />} />
+          <Route path="/management/*" element={<ManagementDashboard />} />
+          <Route path="/inspector/*" element={<InspectorDashboard />} />
+          {/* catch-all → home */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   </React.StrictMode>
 );

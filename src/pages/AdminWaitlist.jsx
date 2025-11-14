@@ -1,4 +1,3 @@
-// src/pages/AdminWaitlist.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
   collection, getDocs, query, orderBy, doc, getDoc
@@ -114,7 +113,7 @@ function AuthGate({ onAuthed }) {
 
 /* ---------- Main Admin screen ---------- */
 export default function AdminWaitlist() {
-  // ✅ Hooks ALWAYS first, and called on every render
+  // Hooks always at top (avoid "rendered more hooks" error)
   const [user, setUser] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,7 +121,7 @@ export default function AdminWaitlist() {
 
   // Load waitlist after successful admin auth
   useEffect(() => {
-    if (!user) return; // effect won't run until user exists — safe
+    if (!user) return;
     (async () => {
       try {
         setLoading(true);
@@ -143,14 +142,13 @@ export default function AdminWaitlist() {
     })();
   }, [user]);
 
-  // ✅ Hooks called every render (even if user is null)
   const total = rows.length;
   const latest = useMemo(
     () => (rows[0]?.createdAt ? new Date(rows[0].createdAt).toLocaleString() : "—"),
     [rows]
   );
 
-  // Choose the view without early-returning before hooks
+  // View switch (no early returns before hooks)
   let view;
   if (!user) {
     view = <AuthGate onAuthed={setUser} />;
