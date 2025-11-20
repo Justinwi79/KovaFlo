@@ -2,7 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Optional font & layout niceties */
-:root { --font-sans: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif; }
-html, body, #root { height: 100%; }
-body { font-family: var(--font-sans); }
+/* Your global component styles */
+@layer components {
+  .input { @apply w-full px-3 py-2 rounded-md border border-[#D0E8F0] bg-white focus:outline-none focus:ring-2 focus:ring-[#019ABD]; }
+  .btn { @apply inline-flex items-center h-10 px-4 rounded-2xl bg-[#004581] text-white font-semibold hover:bg-[#019ABD]; }
+  .btn-secondary { @apply inline-flex items-center h-10 px-3 rounded-2xl border border-[#D0E8F0] text-[#004581] font-semibold hover:bg-[#F1F7FA]; }
+  .err { @apply text-sm text-red-700; }
+}

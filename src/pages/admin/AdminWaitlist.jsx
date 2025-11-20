@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { db } from "../../lib/firebase";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 
@@ -26,7 +27,9 @@ export default function AdminWaitlist() {
     const header = ["email", "name", "company", "notes", "createdAt"];
     const lines = [header.join(",")];
     rows.forEach(r => {
-      const created = r.createdAt?.toDate?.() ? r.createdAt.toDate().toISOString() : (r.createdAt || "");
+      const created = r.createdAt?.toDate?.()
+        ? r.createdAt.toDate().toISOString()
+        : (r.createdAt || "");
       const vals = [
         r.email || "",
         r.name || "",
@@ -49,13 +52,13 @@ export default function AdminWaitlist() {
     <div className="min-h-screen bg-[#F9FBFD] text-gray-900">
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-[#D0E8F0]">
         <nav className="mx-auto max-w-6xl px-6 py-3 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2 select-none">
+          <Link to="/" className="flex items-center gap-2 select-none">
             <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#004581] to-[#019ABD]" />
             <span className="text-lg font-extrabold text-[#004581]">
               Kova<span className="text-[#019ABD]">Flo</span>
             </span>
-          </a>
-          <a href="/admin" className="px-3 py-2 rounded-xl text-[#004581] hover:bg-[#E6F0F4]">Admin</a>
+          </Link>
+          <Link to="/admin" className="px-3 py-2 rounded-xl text-[#004581] hover:bg-[#E6F0F4]">Admin</Link>
         </nav>
       </header>
 
@@ -88,7 +91,9 @@ export default function AdminWaitlist() {
                     <td className="py-2 px-3">{r.name || "—"}</td>
                     <td className="py-2 px-3">{r.company || "—"}</td>
                     <td className="py-2 px-3">{r.notes || "—"}</td>
-                    <td className="py-2 px-3">{r.createdAt?.toDate?.()?.toLocaleString?.() || "—"}</td>
+                    <td className="py-2 px-3">
+                      {r.createdAt?.toDate?.()?.toLocaleString?.() || "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
