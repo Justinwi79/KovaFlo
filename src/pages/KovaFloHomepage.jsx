@@ -4,10 +4,9 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 
 import { db, auth } from "../lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore"; // NEW (doc,getDoc)
 import { signInWithEmailAndPassword } from "firebase/auth";
-
-
+import { useNavigate } from "react-router-dom"; // NEW
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -15,7 +14,6 @@ const firebaseConfig = {
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
-
 
 function Logo() {
   return (
@@ -29,47 +27,46 @@ function Logo() {
 }
 
 function Navbar({ onLogin }) {
-    return (
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-[#D0E8F0]">
-        <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-2">
-          <Logo />
-  
-          {/* Desktop */}
-          <div className="hidden md:flex items-center gap-4 text-sm font-semibold text-[#004581]">
-            <a href="#features" className="inline-flex items-center h-10 px-2 hover:text-[#019ABD]">
-              Features
-            </a>
-            <a href="#about" className="inline-flex items-center h-10 px-2 hover:text-[#019ABD]">
-              About
-            </a>
-            <a href="#waitlist" className="inline-flex items-center h-10 px-2 hover:text-[#019ABD]">
-              Join Beta
-            </a>
-            <Button
-              onClick={onLogin}
-              className="h-10 px-4 bg-[#004581] text-white hover:bg-[#019ABD] font-semibold shadow-sm"
-            >
-              Login
-            </Button>
-          </div>
-  
-          {/* Mobile */}
-          <div className="md:hidden flex items-center gap-3">
-            <a href="#waitlist" className="inline-flex items-center h-10 px-2 text-sm font-semibold text-[#004581]">
-              Join
-            </a>
-            <Button
-              onClick={onLogin}
-              className="h-10 px-4 text-sm bg-[#004581] text-white hover:bg-[#019ABD]"
-            >
-              Login
-            </Button>
-          </div>
-        </nav>
-      </header>
-    );
-  }
-  
+  return (
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-[#D0E8F0]">
+      <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-2">
+        <Logo />
+
+        {/* Desktop */}
+        <div className="hidden md:flex items-center gap-4 text-sm font-semibold text-[#004581]">
+          <a href="#features" className="inline-flex items-center h-10 px-2 hover:text-[#019ABD]">
+            Features
+          </a>
+          <a href="#about" className="inline-flex items-center h-10 px-2 hover:text-[#019ABD]">
+            About
+          </a>
+          <a href="#waitlist" className="inline-flex items-center h-10 px-2 hover:text-[#019ABD]">
+            Join Beta
+          </a>
+          <Button
+            onClick={onLogin}
+            className="h-10 px-4 bg-[#004581] text-white hover:bg-[#019ABD] font-semibold shadow-sm"
+          >
+            Login
+          </Button>
+        </div>
+
+        {/* Mobile */}
+        <div className="md:hidden flex items-center gap-3">
+          <a href="#waitlist" className="inline-flex items-center h-10 px-2 text-sm font-semibold text-[#004581]">
+            Join
+          </a>
+          <Button
+            onClick={onLogin}
+            className="h-10 px-4 text-sm bg-[#004581] text-white hover:bg-[#019ABD]"
+          >
+            Login
+          </Button>
+        </div>
+      </nav>
+    </header>
+  );
+}
 
 function SignupForm() {
   const [email, setEmail] = useState("");
@@ -141,10 +138,12 @@ function SignupForm() {
 }
 
 function LoginModal({ open, onClose }) {
+  const [projId, setProjId] = useState(""); // NEW
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const navigate = useNavigate(); // NEW
 
   if (!open) return null;
 
@@ -152,10 +151,30 @@ function LoginModal({ open, onClose }) {
     e.preventDefault();
     setBusy(true);
     setStatus("");
+
     try {
+      const id = (projId || "").toLowerCase().trim(); // NEW
+      if (!id) {
+        setStatus("Please enter a project ID (e.g., sjb).");
+        setBusy(false);
+        return;
+      }
+
+      // Verify project exists BEFORE auth (NEW)
+      const pSnap = await getDoc(doc(db, "projects", id));
+      if (!pSnap.exists()) {
+        setStatus("Unknown project ID. Check your code (e.g., 'sjb').");
+        setBusy(false);
+        return;
+      }
+
+      // Auth
       await signInWithEmailAndPassword(auth, email, pw);
       setStatus("Signed in!");
       onClose();
+
+      // Route to project-scoped chooser (NEW)
+      navigate(`/p/${id}/choose`);
     } catch (err) {
       console.error(err);
       setStatus(err.message || "Login failed");
@@ -173,9 +192,17 @@ function LoginModal({ open, onClose }) {
         </div>
         <div className="p-6">
           <form className="grid gap-3" onSubmit={onLogin}>
+            {/* NEW: Project ID */}
             <input
               className="px-3 py-2 rounded-md border border-[#D0E8F0] focus:outline-none focus:ring-2 focus:ring-[#019ABD]"
-              placeholder="you@company.com"
+              placeholder='Project ID (e.g., "sjb")'
+              value={projId}
+              onChange={(e) => setProjId(e.target.value)}
+            />
+
+            <input
+              className="px-3 py-2 rounded-md border border-[#D0E8F0] focus:outline-none focus:ring-2 focus:ring-[#019ABD]"
+              placeholder="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />

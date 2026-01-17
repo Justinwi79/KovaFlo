@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 
 export default function ChooseRole() {
+  const { pid } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState({ admin: false, inspector: false });
@@ -13,15 +14,16 @@ export default function ChooseRole() {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { navigate("/", { replace: true }); return; }
       try {
-        const snap = await getDoc(doc(db, "roles", user.uid));
-        const data = snap.data() || {};
-        setRoles({ admin: !!data.admin, inspector: !!data.inspector || !!data.admin });
+        const ref = doc(db, "projects", String(pid).toLowerCase(), "members", user.uid);
+        const snap = await getDoc(ref);
+        const d = snap.data() || {};
+        setRoles({ admin: !!d.admin, inspector: !!d.inspector || !!d.admin });
       } finally { setLoading(false); }
     });
     return () => unsub();
-  }, [navigate]);
+  }, [navigate, pid]);
 
-  if (loading) return <div className="min-h-screen grid place-items-center">Loading…</div>;
+  if (loading) return <div className="min-h-screen grid place-items-center text-[#004581]">Loading…</div>;
 
   return (
     <div className="min-h-screen bg-[#F9FBFD] text-gray-900">
@@ -36,14 +38,14 @@ export default function ChooseRole() {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="text-2xl font-bold text-[#004581] mb-6">Choose your workspace</h1>
+        <h1 className="text-2xl font-bold text-[#004581] mb-6">Choose your workspace for <span className="font-mono">{pid}</span></h1>
 
         <div className="grid md:grid-cols-2 gap-6">
           <div className={`rounded-2xl border border-[#D0E8F0] bg-white p-6 ${roles.inspector ? "hover:shadow" : "opacity-50"}`}>
             <h2 className="text-lg font-semibold text-[#004581] mb-2">Inspector</h2>
             <p className="text-sm text-gray-600 mb-4">Fill out daily reports and export PDFs.</p>
             {roles.inspector ? (
-              <Link to="/inspector" className="btn">Enter Inspector</Link>
+              <Link to={`/p/${pid}/inspector`} className="btn">Enter Inspector</Link>
             ) : (
               <button disabled className="btn-secondary">No access</button>
             )}
@@ -53,7 +55,7 @@ export default function ChooseRole() {
             <h2 className="text-lg font-semibold text-[#004581] mb-2">Management</h2>
             <p className="text-sm text-gray-600 mb-4">View waitlist and submitted reports.</p>
             {roles.admin ? (
-              <Link to="/admin" className="btn">Enter Admin</Link>
+              <Link to={`/p/${pid}/admin`} className="btn">Enter Admin</Link>
             ) : (
               <button disabled className="btn-secondary">No access</button>
             )}

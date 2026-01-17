@@ -12,6 +12,7 @@ import AdminReports from "./pages/admin/AdminReports.jsx";
 
 import RequireAdmin from "./components/RequireAdmin.jsx";
 import RequireInspector from "./components/RequireInspector.jsx";
+import RequireProject from "./components/RequireProject.jsx";
 import ChooseRole from "./pages/ChooseRole.jsx";
 
 function ErrorBoundary({ error }) {
@@ -20,7 +21,7 @@ function ErrorBoundary({ error }) {
     <div className="min-h-screen bg-[#FFF5F5] text-[#7F1D1D] p-6">
       <h1 className="text-xl font-bold mb-2">Something broke</h1>
       <pre className="whitespace-pre-wrap text-sm bg-white p-3 rounded border">
-        {String(error.stack || error.message || error)}
+        {String(error?.stack || error?.message || error)}
       </pre>
     </div>
   );
@@ -32,43 +33,51 @@ function AppRouter() {
   const router = React.useMemo(
     () =>
       createBrowserRouter([
+        // Public homepage
         { path: "/", element: <KovaFloHomepage /> },
-        { path: "/choose", element: <ChooseRole /> },
 
-        // Inspector (guarded)
-        {
-          path: "/inspector",
-          element: (
-            <RequireInspector>
-              <SJBReport />
-            </RequireInspector>
-          ),
+        // Project-scoped routes (each guarded by RequireProject)
+        { path: "/p/:pid/choose", element: (
+            <RequireProject>
+              <ChooseRole />
+            </RequireProject>
+          )
         },
 
-        // Admin (guarded)
-        {
-          path: "/admin",
-          element: (
-            <RequireAdmin>
-              <AdminDashboard />
-            </RequireAdmin>
-          ),
+        // Inspector workspace
+        { path: "/p/:pid/inspector", element: (
+            <RequireProject>
+              <RequireInspector>
+                <SJBReport />
+              </RequireInspector>
+            </RequireProject>
+          )
         },
-        {
-          path: "/admin/waitlist",
-          element: (
-            <RequireAdmin>
-              <AdminWaitlist />
-            </RequireAdmin>
-          ),
+
+        // Admin workspace
+        { path: "/p/:pid/admin", element: (
+            <RequireProject>
+              <RequireAdmin>
+                <AdminDashboard />
+              </RequireAdmin>
+            </RequireProject>
+          )
         },
-        {
-          path: "/admin/reports",
-          element: (
-            <RequireAdmin>
-              <AdminReports />
-            </RequireAdmin>
-          ),
+        { path: "/p/:pid/admin/waitlist", element: (
+            <RequireProject>
+              <RequireAdmin>
+                <AdminWaitlist />
+              </RequireAdmin>
+            </RequireProject>
+          )
+        },
+        { path: "/p/:pid/admin/reports", element: (
+            <RequireProject>
+              <RequireAdmin>
+                <AdminReports />
+              </RequireAdmin>
+            </RequireProject>
+          )
         },
       ]),
     []
@@ -80,7 +89,6 @@ function AppRouter() {
         router={router}
         fallbackElement={<div className="p-6">Loading…</div>}
         future={{ v7_startTransition: true }}
-        // capture render errors so we don’t get a blank page
         onError={(e) => setErr(e)}
       />
       <ErrorBoundary error={err} />

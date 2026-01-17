@@ -1,27 +1,29 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 
 export default function RequireAdmin({ children }) {
   const navigate = useNavigate();
+  const { pid } = useParams();
   const [status, setStatus] = useState("checking");
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!user) { setStatus("denied"); navigate("/", { replace: true }); return; }
+      if (!user) { setStatus("deny"); navigate("/", { replace: true }); return; }
       try {
-        const snap = await getDoc(doc(db, "roles", user.uid));
-        if (snap.exists() && snap.data()?.admin === true) setStatus("allowed");
-        else { setStatus("denied"); navigate("/", { replace: true }); }
+        const ref = doc(db, "projects", String(pid).toLowerCase(), "members", user.uid);
+        const snap = await getDoc(ref);
+        if (snap.exists() && snap.data()?.admin === true) setStatus("ok");
+        else { setStatus("deny"); navigate("/", { replace: true }); }
       } catch {
-        setStatus("denied"); navigate("/", { replace: true });
+        setStatus("deny"); navigate("/", { replace: true });
       }
     });
     return () => unsub();
-  }, [navigate]);
+  }, [navigate, pid]);
 
-  if (status === "checking") return <div className="min-h-screen grid place-items-center">Checking access…</div>;
+  if (status === "checking") return <div className="min-h-screen grid place-items-center">Checking admin…</div>;
   return children;
 }
