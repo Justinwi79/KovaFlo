@@ -14,6 +14,8 @@ import RequireAdmin from "./components/RequireAdmin.jsx";
 import RequireInspector from "./components/RequireInspector.jsx";
 import RequireProject from "./components/RequireProject.jsx";
 import ChooseRole from "./pages/ChooseRole.jsx";
+import LegacyAdminRedirect from "./components/LegacyAdminRedirect.jsx";
+import LegacyInspectorRedirect from "./components/LegacyInspectorRedirect.jsx";
 
 function ErrorBoundary({ error }) {
   if (!error) return null;
@@ -79,6 +81,14 @@ function AppRouter() {
             </RequireProject>
           )
         },
+        { path: "/admin/*", element: (
+          <LegacyAdminRedirect defaultPid="sjb" />
+        )
+        },
+        { path: "/inspector", element: (
+          <LegacyInspectorRedirect defaultPid="sjb" />
+      )
+    },
       ]),
     []
   );
